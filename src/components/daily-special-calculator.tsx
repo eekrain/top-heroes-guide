@@ -1,7 +1,9 @@
 import { createSignal, For, Show } from 'solid-js'
 import { calculateShardPlan } from '../lib/shard-calculator'
 import {
+  buildDailyPlan,
   compareStrategies,
+  type PlanAction,
   type StrategyResult,
 } from '../lib/daily-special-strategies'
 
@@ -12,6 +14,88 @@ const formatIdr = new Intl.NumberFormat('id-ID', {
 })
 
 const formatNumber = new Intl.NumberFormat('id-ID')
+
+const BUNDLE_NAMES: Record<number, string> = {
+  77_000: 'Small',
+  155_000: 'Medium',
+  310_000: 'Large',
+}
+
+type PlanRow =
+  | { kind: 'week'; week: number; text: string }
+  | { kind: 'day'; day: number }
+  | { kind: 'action'; action: PlanAction }
+
+function PlanHeader(props: { row: PlanRow }) {
+  if (props.row.kind === 'week') {
+    return (
+      <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-cyan-400 first:mt-0">
+        {props.row.text}
+      </p>
+    )
+  }
+  return <p class="mt-3 text-sm font-semibold first:mt-0">Day {props.row.day}</p>
+}
+
+function PlanLine(props: { row: PlanRow }) {
+  const action = () => props.row.action
+  return (
+    <Show
+      when={action().kind === 'tier'}
+      fallback={
+        <Show
+          when={action().kind === 'buy-bundles'}
+          fallback={
+            <p class="ml-4 py-0.5 text-sm">
+              Buy{' '}
+              {formatNumber.format((action() as { packs: number }).packs)} voucher{' '}
+              {(action() as { packs: number }).packs === 1 ? 'pack' : 'packs'} —{' '}
+              {formatIdr.format((action() as { cost: number }).cost)}
+              <Show when={(action() as { vouchersAfter: number }).vouchersAfter > 0}>
+                <span class="opacity-60">
+                  {' '}
+                  ({formatNumber.format((action() as { vouchersAfter: number }).vouchersAfter)}{' '}
+                  vouchers left)
+                </span>
+              </Show>
+            </p>
+          }
+        >
+          <p class="ml-4 py-0.5 text-sm text-cyan-300">
+            <For each={(action() as { bundles: { price: number; count: number; gold: number }[] }).bundles}>
+              {(bundle) => (
+                <span>
+                  Buy {formatNumber.format(bundle.count)}×{' '}
+                  {BUNDLE_NAMES[bundle.price] ?? 'Gold'} bundle —{' '}
+                  {formatIdr.format(bundle.price * bundle.count)} → +
+                  {formatNumber.format(bundle.gold * bundle.count)} gold
+                </span>
+              )}
+            </For>
+          </p>
+        </Show>
+      }
+    >
+      <p class="ml-4 py-0.5 text-sm">
+        Tier {(action() as { tier: number }).tier} —{' '}
+        <Show
+          when={(action() as { payment: string }).payment === 'gold'}
+          fallback={
+            <span>
+              use {formatNumber.format((action() as { vouchers: number }).vouchers || 0)} vouchers
+            </span>
+          }
+        >
+          <span class="text-cyan-300">
+            pay {formatNumber.format((action() as { goldCost: number }).goldCost || 0)} gold
+          </span>
+        </Show>{' '}
+        → {formatNumber.format((action() as { shards: number }).shards)} shards, +
+        {formatNumber.format((action() as { gems: number }).gems)} gems
+      </p>
+    </Show>
+  )
+}
 
 function StrategyCard(props: { strategy: StrategyResult; cheapest: boolean }) {
   return (
@@ -80,12 +164,36 @@ function StrategyCard(props: { strategy: StrategyResult; cheapest: boolean }) {
 export function DailySpecialCalculator() {
   const [raw, setRaw] = createSignal('400')
   const [goldRaw, setGoldRaw] = createSignal('')
+  const [showPlan, setShowPlan] = createSignal(false)
+  const [planTab, setPlanTab] = createSignal<'cheapest' | 'vouchers'>('cheapest')
 
   const target = () => Number.parseInt(raw(), 10)
   const valid = () => Number.isInteger(target()) && target() > 0
   const heldGold = () => Math.max(0, Number.parseInt(goldRaw(), 10) || 0)
   const plan = () => (valid() ? calculateShardPlan(target()) : null)
   const comparison = () => (valid() ? compareStrategies(target(), heldGold()) : null)
+  const dailyPlan = () =>
+    valid() ? buildDailyPlan(target(), heldGold(), planTab()) : null
+
+  const planRows = (): PlanRow[] => {
+    const rows: PlanRow[] = []
+    let lastDay = 0
+    for (const action of dailyPlan()?.actions ?? []) {
+      if (action.kind === 'buy-bundles') {
+        rows.push({
+          kind: 'week',
+          week: action.week,
+          text: `Week ${action.week} — gold bundles`,
+        })
+      }
+      if (action.day !== lastDay) {
+        lastDay = action.day
+        rows.push({ kind: 'day', day: action.day })
+      }
+      rows.push({ kind: 'action', action })
+    }
+    return rows
+  }
 
   return (
     <div class="flex flex-col gap-4 my-6">
@@ -144,31 +252,71 @@ export function DailySpecialCalculator() {
           </For>
         </div>
 
-        <div class="text-sm font-medium">Voucher plan schedule</div>
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-black/15 dark:border-white/20 text-left opacity-60">
-              <th class="py-2 font-medium">Days</th>
-              <th class="py-2 font-medium">Vouchers</th>
-              <th class="py-2 font-medium">Shards</th>
-            </tr>
-          </thead>
-          <tbody>
-            <For each={plan()!.schedule}>
-              {(entry) => (
-                <tr class="border-b border-black/15 dark:border-white/20">
-                  <td class="py-2">
-                    {entry.fromDay === entry.toDay
-                      ? formatNumber.format(entry.fromDay)
-                      : `${formatNumber.format(entry.fromDay)}–${formatNumber.format(entry.toDay)}`}
-                  </td>
-                  <td class="py-2">{formatNumber.format(entry.vouchers)}</td>
-                  <td class="py-2">{formatNumber.format(entry.shards)}</td>
-                </tr>
-              )}
-            </For>
-          </tbody>
-        </table>
+        <button
+          type="button"
+          onClick={() => {
+            if (!showPlan()) {
+              setPlanTab(comparison()!.cheapestId === 'vouchers' ? 'vouchers' : 'cheapest')
+            }
+            setShowPlan(!showPlan())
+          }}
+          class="self-start rounded-md border border-black/15 dark:border-white/20 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          {showPlan() ? 'Hide day-by-day plan' : 'See day-by-day plan'}
+        </button>
+
+        <Show when={showPlan()}>
+          <div class="rounded-xl border border-black/15 dark:border-white/20 p-4">
+            <div class="flex gap-2">
+              <For each={['cheapest', 'vouchers'] as const}>
+                {(tab) => (
+                  <button
+                    type="button"
+                    onClick={() => setPlanTab(tab)}
+                    class={`rounded-full px-3 py-1 text-xs transition ${
+                      planTab() === tab
+                        ? 'bg-blue-600 text-white'
+                        : 'border border-black/15 dark:border-white/20 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    {tab === 'cheapest' ? 'Cheapest Mix' : 'All Vouchers'}
+                  </button>
+                )}
+              </For>
+            </div>
+
+            <div class="mt-4 max-h-96 overflow-y-auto pr-1">
+              <For each={planRows()}>
+                {(row) => (
+                  <Show when={row.kind === 'action'} fallback={<PlanHeader row={row} />}>
+                    <PlanLine row={row} />
+                  </Show>
+                )}
+              </For>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-black/10 dark:border-white/10 pt-3 text-sm">
+              <span>
+                <span class="opacity-60">Total </span>
+                <span class="font-semibold">{formatIdr.format(plan()!.days > 0 ? dailyPlan()!.totals.cost : 0)}</span>
+              </span>
+              <span>
+                <span class="opacity-60">Packs </span>
+                {formatNumber.format(dailyPlan()!.totals.packs)}
+              </span>
+              <span>
+                <span class="opacity-60">Star gems </span>
+                {formatNumber.format(dailyPlan()!.totals.gems)}
+              </span>
+              <Show when={dailyPlan()!.totals.goldLeft > 0}>
+                <span>
+                  <span class="opacity-60">Gold left </span>
+                  {formatNumber.format(dailyPlan()!.totals.goldLeft)}
+                </span>
+              </Show>
+            </div>
+          </div>
+        </Show>
       </Show>
     </div>
   )

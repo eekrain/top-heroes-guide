@@ -192,17 +192,24 @@ function cheapestMixPlan(
   heldGold: number,
 ): StrategyResult {
   if (counts.days === 0) return voucherPlan(counts)
+  return findBestWeeklyCounts(counts, heldGold).result
+}
+
+function findBestWeeklyCounts(
+  counts: ReturnType<typeof tierCounts>,
+  heldGold: number,
+): { weeklyCounts: number[][]; result: StrategyResult } {
   const weeks = Math.ceil(counts.days / 7)
 
   const enumerate = (
     week: number,
     acc: number[][],
-    best: StrategyResult | null,
-  ): StrategyResult | null => {
+    best: { weeklyCounts: number[][]; result: StrategyResult } | null,
+  ): { weeklyCounts: number[][]; result: StrategyResult } | null => {
     if (week === weeks) {
       const sim = simulateMix(counts, heldGold, acc)
-      if (!isBetter(sim, best)) return best
-      return buildResult(counts, acc, sim)
+      if (!isBetter(sim, best?.result ?? null)) return best
+      return { weeklyCounts: acc, result: buildResult(counts, acc, sim) }
     }
     for (let a = 0; a <= GOLD_BUNDLES[0].perWeek; a++) {
       for (let b = 0; b <= GOLD_BUNDLES[1].perWeek; b++) {
@@ -241,7 +248,7 @@ function cheapestMixPlan(
       }
     }
   }
-  return buildResult(counts, weekly, bestSim)
+  return { weeklyCounts: weekly, result: buildResult(counts, weekly, bestSim) }
 }
 
 export interface StrategyComparison {
@@ -263,4 +270,178 @@ export function compareStrategies(
   const cheapestId = cheapest.cost < vouchers.cost ? 'cheapest' : 'vouchers'
 
   return { vouchers, cheapest, cheapestId }
+}
+
+export interface BuyBundlesAction {
+  kind: 'buy-bundles'
+  day: number
+  week: number
+  bundles: { price: number; gold: number; count: number }[]
+  cost: number
+  goldGained: number
+}
+
+export interface BuyPacksAction {
+  kind: 'buy-packs'
+  day: number
+  packs: number
+  cost: number
+  vouchersAfter: number
+}
+
+export interface TierAction {
+  kind: 'tier'
+  day: number
+  tier: 1 | 2
+  payment: 'gold' | 'vouchers'
+  goldCost?: number
+  vouchers?: number
+  shards: number
+  gems: number
+}
+
+export type PlanAction = BuyBundlesAction | BuyPacksAction | TierAction
+
+export interface DailyPlan {
+  strategyId: 'vouchers' | 'cheapest'
+  actions: PlanAction[]
+  totals: {
+    cost: number
+    packs: number
+    gems: number
+    goldSpent: number
+    goldLeft: number
+  }
+}
+
+/**
+ * Reconstructs a chronological shopping list for a strategy, mirroring the
+ * aggregate simulations: bundles are bought at each week's start, gold fills
+ * tier 2 first within the week (earliest days), vouchers are bought as packs
+ * only when the inventory runs short.
+ */
+export function buildDailyPlan(
+  target: number,
+  heldGold: number,
+  strategy: 'vouchers' | 'cheapest',
+): DailyPlan {
+  const counts = tierCounts(target)
+  const held = Number.isFinite(heldGold) ? Math.max(0, Math.floor(heldGold)) : 0
+  const useGold = strategy === 'cheapest' && counts.days > 0
+  const weeklyCounts = useGold
+    ? findBestWeeklyCounts(counts, held).weeklyCounts
+    : null
+
+  const actions: PlanAction[] = []
+  let goldInv = held
+  let voucherInv = 0
+  let packsBought = 0
+  let bundleSpend = 0
+  let goldSpent = 0
+  let gems = 0
+
+  const payTier = (day: number, tier: 1 | 2, useGoldTier: boolean) => {
+    const idx = tier - 1
+    if (useGoldTier && goldInv >= TIER_GOLD_COST[idx]) {
+      goldInv -= TIER_GOLD_COST[idx]
+      goldSpent += TIER_GOLD_COST[idx]
+      gems += TIER_GEMS_GOLD[idx]
+      actions.push({
+        kind: 'tier',
+        day,
+        tier,
+        payment: 'gold',
+        goldCost: TIER_GOLD_COST[idx],
+        shards: DAILY_DEAL.tiers[idx].shards,
+        gems: TIER_GEMS_GOLD[idx],
+      })
+      return
+    }
+    const need = DAILY_DEAL.tiers[idx].vouchers
+    if (voucherInv < need) {
+      const packs = Math.ceil((need - voucherInv) / DAILY_DEAL.packSize)
+      voucherInv += packs * DAILY_DEAL.packSize
+      packsBought += packs
+      bundleSpend += packs * DAILY_DEAL.packPrice
+      actions.push({
+        kind: 'buy-packs',
+        day,
+        packs,
+        cost: packs * DAILY_DEAL.packPrice,
+        vouchersAfter: voucherInv - need,
+      })
+    }
+    voucherInv -= need
+    gems += TIER_GEMS_VOUCHER[idx]
+    actions.push({
+      kind: 'tier',
+      day,
+      tier,
+      payment: 'vouchers',
+      vouchers: need,
+      shards: DAILY_DEAL.tiers[idx].shards,
+      gems: TIER_GEMS_VOUCHER[idx],
+    })
+  }
+
+  const weeks = Math.ceil(counts.days / 7)
+  for (let w = 0; w < weeks; w++) {
+    const dayStart = w * 7 + 1
+    const dayEnd = Math.min(counts.days, w * 7 + 7)
+    if (dayEnd < dayStart) break
+
+    if (weeklyCounts) {
+      const bought = weeklyCounts[w]
+        .map((count, i) => ({
+          price: GOLD_BUNDLES[i].price,
+          gold: GOLD_BUNDLES[i].gold,
+          count,
+        }))
+        .filter((b) => b.count > 0)
+      if (bought.length > 0) {
+        const goldGained = bought.reduce((sum, b) => sum + b.gold * b.count, 0)
+        bundleSpend += bought.reduce((sum, b) => sum + b.price * b.count, 0)
+        goldInv += goldGained
+        actions.push({
+          kind: 'buy-bundles',
+          day: dayStart,
+          week: w + 1,
+          bundles: bought,
+          cost: bought.reduce((sum, b) => sum + b.price * b.count, 0),
+          goldGained,
+        })
+      }
+    }
+
+    const daysThisWeek = dayEnd - dayStart + 1
+    const t2ThisWeek = Math.max(0, Math.min(counts.tier2, dayEnd) - (dayStart - 1))
+    let goldT2Cap = 0
+    let goldT1Cap = 0
+    if (weeklyCounts) {
+      goldT2Cap = Math.min(t2ThisWeek, Math.floor(goldInv / TIER_GOLD_COST[1]))
+      const afterT2 = goldInv - goldT2Cap * TIER_GOLD_COST[1]
+      goldT1Cap = Math.min(daysThisWeek, Math.floor(afterT2 / TIER_GOLD_COST[0]))
+    }
+
+    for (let day = dayStart; day <= dayEnd; day++) {
+      payTier(day, 1, goldT1Cap > 0)
+      if (goldT1Cap > 0) goldT1Cap--
+      if (day <= counts.tier2) {
+        payTier(day, 2, goldT2Cap > 0)
+        if (goldT2Cap > 0) goldT2Cap--
+      }
+    }
+  }
+
+  return {
+    strategyId: strategy,
+    actions,
+    totals: {
+      cost: bundleSpend,
+      packs: packsBought,
+      gems,
+      goldSpent,
+      goldLeft: goldInv,
+    },
+  }
 }

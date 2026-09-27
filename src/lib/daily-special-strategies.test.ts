@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { compareStrategies } from './daily-special-strategies'
+import { buildDailyPlan, compareStrategies } from './daily-special-strategies'
 
 describe('all-voucher strategy', () => {
   it('matches the known voucher plan and gem rewards', () => {
@@ -73,5 +73,42 @@ describe('comparison', () => {
     expect(c.cheapestId).toBe('cheapest')
     expect(c.cheapest.cost).toBe(0)
     expect(c.cheapest.gems).toBe(140)
+  })
+})
+
+describe('daily plans', () => {
+  it('cheapest plan for 40 shards reads as a shopping list', () => {
+    const plan = buildDailyPlan(40, 0, 'cheapest')
+    expect(plan.actions).toEqual([
+      { kind: 'buy-bundles', day: 1, week: 1, bundles: [{ price: 77_000, gold: 161_700, count: 2 }], cost: 154_000, goldGained: 323_400 },
+      { kind: 'buy-packs', day: 1, packs: 1, cost: 60_000, vouchersAfter: 0 },
+      { kind: 'tier', day: 1, tier: 1, payment: 'vouchers', vouchers: 6, shards: 10, gems: 50 },
+      { kind: 'tier', day: 1, tier: 2, payment: 'gold', goldCost: 310_000, shards: 30, gems: 105 },
+    ])
+    expect(plan.totals.cost).toBe(214_000)
+  })
+
+  it('voucher plan for 40 shards buys packs as needed', () => {
+    const plan = buildDailyPlan(40, 0, 'vouchers')
+    expect(plan.actions).toEqual([
+      { kind: 'buy-packs', day: 1, packs: 1, cost: 60_000, vouchersAfter: 0 },
+      { kind: 'tier', day: 1, tier: 1, payment: 'vouchers', vouchers: 6, shards: 10, gems: 50 },
+      { kind: 'buy-packs', day: 1, packs: 4, cost: 240_000, vouchersAfter: 4 },
+      { kind: 'tier', day: 1, tier: 2, payment: 'vouchers', vouchers: 20, shards: 30, gems: 150 },
+    ])
+    expect(plan.totals.cost).toBe(300_000)
+  })
+
+  it('mixes held gold and vouchers across days', () => {
+    const plan = buildDailyPlan(50, 100_000, 'cheapest')
+    expect(plan.actions).toEqual([
+      { kind: 'buy-bundles', day: 1, week: 1, bundles: [{ price: 77_000, gold: 161_700, count: 2 }], cost: 154_000, goldGained: 323_400 },
+      { kind: 'tier', day: 1, tier: 1, payment: 'gold', goldCost: 93_000, shards: 10, gems: 35 },
+      { kind: 'tier', day: 1, tier: 2, payment: 'gold', goldCost: 310_000, shards: 30, gems: 105 },
+      { kind: 'buy-packs', day: 2, packs: 1, cost: 60_000, vouchersAfter: 0 },
+      { kind: 'tier', day: 2, tier: 1, payment: 'vouchers', vouchers: 6, shards: 10, gems: 50 },
+    ])
+    expect(plan.totals.cost).toBe(214_000)
+    expect(plan.totals.goldLeft).toBe(20_400)
   })
 })
