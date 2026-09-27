@@ -164,8 +164,8 @@ function StrategyCard(props: { strategy: StrategyResult; cheapest: boolean }) {
 export function DailySpecialCalculator() {
   const [raw, setRaw] = createSignal('400')
   const [goldRaw, setGoldRaw] = createSignal('')
-  const [showPlan, setShowPlan] = createSignal(false)
   const [planTab, setPlanTab] = createSignal<'cheapest' | 'vouchers'>('cheapest')
+  let planDialog: HTMLDialogElement | undefined
 
   const target = () => Number.parseInt(raw(), 10)
   const valid = () => Number.isInteger(target()) && target() > 0
@@ -255,68 +255,83 @@ export function DailySpecialCalculator() {
         <button
           type="button"
           onClick={() => {
-            if (!showPlan()) {
-              setPlanTab(comparison()!.cheapestId === 'vouchers' ? 'vouchers' : 'cheapest')
-            }
-            setShowPlan(!showPlan())
+            setPlanTab(comparison()!.cheapestId === 'vouchers' ? 'vouchers' : 'cheapest')
+            planDialog?.showModal()
           }}
           class="self-start rounded-md border border-black/15 dark:border-white/20 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10"
         >
-          {showPlan() ? 'Hide day-by-day plan' : 'See day-by-day plan'}
+          See day-by-day plan
         </button>
 
-        <Show when={showPlan()}>
-          <div class="rounded-xl border border-black/15 dark:border-white/20 p-4">
-            <div class="flex gap-2">
-              <For each={['cheapest', 'vouchers'] as const}>
-                {(tab) => (
-                  <button
-                    type="button"
-                    onClick={() => setPlanTab(tab)}
-                    class={`rounded-full px-3 py-1 text-xs transition ${
-                      planTab() === tab
-                        ? 'bg-blue-600 text-white'
-                        : 'border border-black/15 dark:border-white/20 opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    {tab === 'cheapest' ? 'Cheapest Mix' : 'All Vouchers'}
-                  </button>
-                )}
-              </For>
-            </div>
-
-            <div class="mt-4 max-h-96 overflow-y-auto pr-1">
-              <For each={planRows()}>
-                {(row) => (
-                  <Show when={row.kind === 'action'} fallback={<PlanHeader row={row} />}>
-                    <PlanLine row={row} />
-                  </Show>
-                )}
-              </For>
-            </div>
-
-            <div class="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-black/10 dark:border-white/10 pt-3 text-sm">
-              <span>
-                <span class="opacity-60">Total </span>
-                <span class="font-semibold">{formatIdr.format(plan()!.days > 0 ? dailyPlan()!.totals.cost : 0)}</span>
-              </span>
-              <span>
-                <span class="opacity-60">Packs </span>
-                {formatNumber.format(dailyPlan()!.totals.packs)}
-              </span>
-              <span>
-                <span class="opacity-60">Star gems </span>
-                {formatNumber.format(dailyPlan()!.totals.gems)}
-              </span>
-              <Show when={dailyPlan()!.totals.goldLeft > 0}>
-                <span>
-                  <span class="opacity-60">Gold left </span>
-                  {formatNumber.format(dailyPlan()!.totals.goldLeft)}
-                </span>
-              </Show>
-            </div>
+        <dialog
+          ref={planDialog}
+          aria-label="Day-by-day plan"
+          onClick={(e) => {
+            if (e.target === planDialog) planDialog?.close()
+          }}
+          class="m-auto w-[min(28rem,90vw)] rounded-xl border border-white/15 bg-zinc-950 p-0 text-white shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+        >
+          <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <h2 class="text-base font-semibold">Day-by-day plan</h2>
+            <button
+              type="button"
+              onClick={() => planDialog?.close()}
+              aria-label="Close"
+              class="rounded-md px-2 py-1 text-sm opacity-60 transition hover:opacity-100 hover:bg-white/10"
+            >
+              ✕
+            </button>
           </div>
-        </Show>
+
+          <div class="flex gap-2 px-5 pt-4">
+            <For each={['cheapest', 'vouchers'] as const}>
+              {(tab) => (
+                <button
+                  type="button"
+                  onClick={() => setPlanTab(tab)}
+                  class={`rounded-full px-3 py-1 text-xs transition ${
+                    planTab() === tab
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-white/20 opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  {tab === 'cheapest' ? 'Cheapest Mix' : 'All Vouchers'}
+                </button>
+              )}
+            </For>
+          </div>
+
+          <div class="max-h-[60vh] overflow-y-auto px-5 py-4">
+            <For each={planRows()}>
+              {(row) => (
+                <Show when={row.kind === 'action'} fallback={<PlanHeader row={row} />}>
+                  <PlanLine row={row} />
+                </Show>
+              )}
+            </For>
+          </div>
+
+          <div class="flex flex-wrap gap-x-6 gap-y-1 border-t border-white/10 px-5 py-3 text-sm">
+            <span>
+              <span class="opacity-60">Total </span>
+              <span class="font-semibold">{formatIdr.format(dailyPlan()!.totals.cost)}</span>
+            </span>
+            <span>
+              <span class="opacity-60">Packs </span>
+              {formatNumber.format(dailyPlan()!.totals.packs)}
+            </span>
+            <span>
+              <span class="opacity-60">Star gems </span>
+              {formatNumber.format(dailyPlan()!.totals.gems)}
+            </span>
+            <Show when={dailyPlan()!.totals.goldLeft > 0}>
+              <span>
+                <span class="opacity-60">Gold left </span>
+                {formatNumber.format(dailyPlan()!.totals.goldLeft)}
+              </span>
+            </Show>
+          </div>
+        </dialog>
       </Show>
     </div>
   )
