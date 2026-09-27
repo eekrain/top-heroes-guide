@@ -40,8 +40,8 @@ function PlanLine(props: { row: PlanRow }) {
           fallback={
             <p class="ml-4 py-0.5 text-sm">
               Buy{' '}
-              {formatNumber.format((action() as { packs: number }).packs)} voucher{' '}
-              {(action() as { packs: number }).packs === 1 ? 'pack' : 'packs'} —{' '}
+              {formatNumber.format((action() as { packs: number }).packs)} Daily Deal Activation{' '}
+              {(action() as { packs: number }).packs === 1 ? 'Pack' : 'Packs'} —{' '}
               {formatIdr.format((action() as { cost: number }).cost)}
               <Show when={(action() as { vouchersAfter: number }).vouchersAfter > 0}>
                 <span class="opacity-60">
