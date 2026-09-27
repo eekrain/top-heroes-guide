@@ -68,7 +68,7 @@ function PlanLine(props: { row: PlanRow }) {
       }
     >
       <p class="ml-4 py-0.5 text-sm">
-        Tier {(action() as { tier: number }).tier} —{' '}
+        {(action() as { tier: number }).tier === 1 ? 'First purchase' : 'Second purchase'} —{' '}
         <Show
           when={(action() as { payment: string }).payment === 'gold'}
           fallback={
