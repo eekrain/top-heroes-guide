@@ -358,18 +358,10 @@ export function buildDailyPlan(
       return
     }
     const need = DAILY_DEAL.tiers[idx].vouchers
-    if (voucherInv < need) {
-      const packs = Math.ceil((need - voucherInv) / DAILY_DEAL.packSize)
-      voucherInv += packs * DAILY_DEAL.packSize
-      packsBought += packs
-      bundleSpend += packs * DAILY_DEAL.packPrice
-      actions.push({
-        kind: 'buy-packs',
-        day,
-        packs,
-        cost: packs * DAILY_DEAL.packPrice,
-        vouchersAfter: voucherInv - need,
-      })
+    while (voucherInv < need) {
+      voucherInv += DAILY_DEAL.packSize
+      packsBought++
+      bundleSpend += DAILY_DEAL.packPrice
     }
     voucherInv -= need
     gems += TIER_GEMS_VOUCHER[idx]
@@ -424,11 +416,24 @@ export function buildDailyPlan(
     }
 
     for (let day = dayStart; day <= dayEnd; day++) {
+      // Buy the whole day's voucher packs up front, as one instruction.
+      const dayStartIndex = actions.length
+      const packsBefore = packsBought
       payTier(day, 1, goldT1Cap > 0)
       if (goldT1Cap > 0) goldT1Cap--
       if (day <= counts.tier2) {
         payTier(day, 2, goldT2Cap > 0)
         if (goldT2Cap > 0) goldT2Cap--
+      }
+      const packsToday = packsBought - packsBefore
+      if (packsToday > 0) {
+        actions.splice(dayStartIndex, 0, {
+          kind: 'buy-packs',
+          day,
+          packs: packsToday,
+          cost: packsToday * DAILY_DEAL.packPrice,
+          vouchersAfter: voucherInv,
+        })
       }
     }
   }

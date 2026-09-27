@@ -88,12 +88,11 @@ describe('daily plans', () => {
     expect(plan.totals.cost).toBe(214_000)
   })
 
-  it('voucher plan for 40 shards buys packs as needed', () => {
+  it('voucher plan for 40 shards buys all packs up front', () => {
     const plan = buildDailyPlan(40, 0, 'vouchers')
     expect(plan.actions).toEqual([
-      { kind: 'buy-packs', day: 1, packs: 1, cost: 60_000, vouchersAfter: 0 },
+      { kind: 'buy-packs', day: 1, packs: 5, cost: 300_000, vouchersAfter: 4 },
       { kind: 'tier', day: 1, tier: 1, payment: 'vouchers', vouchers: 6, shards: 10, gems: 50 },
-      { kind: 'buy-packs', day: 1, packs: 4, cost: 240_000, vouchersAfter: 4 },
       { kind: 'tier', day: 1, tier: 2, payment: 'vouchers', vouchers: 20, shards: 30, gems: 150 },
     ])
     expect(plan.totals.cost).toBe(300_000)
