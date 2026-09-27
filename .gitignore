@@ -15,4 +15,5 @@ node_modules
 /playwright/.cache/
 .tanstack
 
-.source.worktrees/
+.source
+.worktrees/
