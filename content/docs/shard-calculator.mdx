@@ -1,0 +1,37 @@
+---
+title: Shard Calculator
+description: Plan your Daily Deal voucher purchases to hit a hero shard target.
+icon: Calculator
+---
+
+The **Daily Deal** lets you activate vouchers every day for hero shards.
+This calculator tells you how many packs to buy and what it costs in Rupiah
+to reach your target shard count.
+
+## How the Daily Deal works
+
+| Item                  | Value     |
+| --------------------- | --------- |
+| Activation Pack price | Rp 60.000 |
+| Vouchers per pack     | 6         |
+| Daily voucher cap     | 26        |
+
+Each day has two all-or-nothing tiers:
+
+| Tier | Vouchers          | Reward    |
+| ---- | ----------------- | --------- |
+| 1    | 6                 | 10 shards |
+| 2    | 20 (after tier 1) | 30 shards |
+
+- A full day uses all 26 vouchers for **40 shards**.
+- Daily outcomes are only **0, 10, or 40** shards — tier 2 cannot be partially claimed.
+- Unused vouchers **carry over** to the next day, so packs are never wasted.
+
+<ShardCalculator />
+
+## Unit economics
+
+- Tier 1 alone is the most efficient: 10 shards for Rp 60.000 = **Rp 6.000/shard**.
+- Steady-state full days average Rp 260.000 per 40 shards ≈ **Rp 6.500/shard**
+  (26 vouchers/day across packs of 6, with carryover).
+- Buying pack-by-pack with no carryover costs Rp 300.000/day = Rp 7.500/shard.
