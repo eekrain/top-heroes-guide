@@ -1,66 +1,50 @@
 ---
 title: Daily Special Calculator
-description: Plan your Daily Special voucher purchases to hit a hero shard target.
+description: Compare vouchers and gold bundles to hit your daily special shard target the cheap way.
 icon: Calculator
 ---
 
-The **Daily Deal** lets you activate vouchers every day for hero shards.
-This calculator tells you how many packs to buy and what it costs in Rupiah
-to reach your target shard count.
-
-## How the Daily Deal works
-
-| Item                  | Value     |
-| --------------------- | --------- |
-| Activation Pack price | Rp 60.000 |
-| Vouchers per pack     | 6         |
-| Daily voucher cap     | 26        |
-
-Each day has two all-or-nothing tiers:
-
-| Tier | Vouchers          | Reward    |
-| ---- | ----------------- | --------- |
-| 1    | 6                 | 10 shards |
-| 2    | 20 (after tier 1) | 30 shards |
-
-- A full day uses all 26 vouchers for **40 shards**.
-- Daily outcomes are only **0, 10, or 40** shards — tier 2 cannot be partially claimed.
-- Unused vouchers **carry over** to the next day, so packs are never wasted.
+The daily special sells **hero shards twice a day**. This calculator compares
+the two ways to pay — **voucher packs** and **gold blocks** bought with the
+weekly +110% bundles — and finds the cheapest combination for your target.
 
 <DailySpecialCalculator />
 
-## Paying with gold blocks
+## How the daily special works
 
-Each tier can also be activated with gold blocks — same shards, fewer star gems:
+- Each day you can buy the daily special **twice**: the first buy gives
+  **10 shards**, the second gives **30 more** — 40 shards per day in total.
+- Every buy can be paid with **vouchers** or **gold blocks**. You can mix
+  them freely, e.g. vouchers for the first buy and gold for the second.
+- Vouchers come from the Daily Deal Activation Pack: **Rp 60.000 for 6
+  vouchers**. Leftover vouchers carry over to the next day, so nothing is
+  wasted.
+- Paying with vouchers earns **more star gems** than paying with gold.
 
-| Tier          | Via vouchers             | Via gold     | Voucher reward | Gold reward |
-| ------------- | ------------------------ | ------------ | -------------- | ----------- |
-| 1 (10 shards) | 6 vouchers ≈ Rp 60.000   | 93.000 gold  | 50 gems        | 35 gems     |
-| 2 (30 shards) | 20 vouchers ≈ Rp 200.000 | 310.000 gold | 150 gems       | 105 gems    |
+## Costs side by side
 
-Bought at the weekly bonus rate (≈ Rp 0,476/gold), gold is **cheaper** than
-vouchers per shard — tier 1 ≈ Rp 44.286 and tier 2 ≈ Rp 147.619 — but pays
-15 / 45 fewer star gems. The calculator's **Cheapest Mix** finds the best
-bundle-and-voucher combination for your target.
+|                     | Tier 1 — 10 shards   | Tier 2 — +30 shards   |
+| ------------------- | -------------------- | --------------------- |
+| With vouchers       | 6 (1 pack, Rp 60.000) | 20 (≈ Rp 200.000)     |
+| With gold blocks    | 93.000 gold          | 310.000 gold          |
+| …at the bundle rate | ≈ Rp 44.286          | ≈ Rp 147.619          |
+| Star gems (vouchers) | 50                  | 150                   |
+| Star gems (gold)    | 35                   | 105                   |
 
-## Weekly gold top-up deals
+Gold bought with the weekly bundles is **cheaper** per shard, but vouchers
+earn **more star gems** — that is the trade-off the calculator makes for you.
 
-Every bundle gives a **+110% bonus** (2.1× gold per Rupiah):
+## Weekly gold bundles
 
-| Bundle | Price      | Base gold | Bonus gold | Total gold | Per week |
-| ------ | ---------- | --------- | ---------- | ---------- | -------- |
-| Small  | Rp 77.000  | 77.000    | 84.700     | 161.700    | 2        |
-| Medium | Rp 155.000 | 155.000   | 170.500    | 325.500    | 1        |
-| Large  | Rp 310.000 | 310.000   | 341.000    | 651.000    | 1        |
+Every bundle gives a **+110% bonus** — pay Rp 77.000, receive 161.700 gold:
 
-A fully bundled week buys 1.299.900 gold for Rp 619.000 — about 3,2 full
-gold days. Beyond the bundles, plain 1:1 top-ups exist but always lose to
-vouchers for the daily special (93.000 > 60.000 and 310.000 > 200.000), so
-the cheapest plan never uses them.
+| Bundle | Price      | Total gold | Per week |
+| ------ | ---------- | ---------- | -------- |
+| Small  | Rp 77.000  | 161.700    | 2        |
+| Medium | Rp 155.000 | 325.500    | 1        |
+| Large  | Rp 310.000 | 651.000    | 1        |
 
-## Unit economics
-
-- Tier 1 alone is the most efficient: 10 shards for Rp 60.000 = **Rp 6.000/shard**.
-- Steady-state full days average Rp 260.000 per 40 shards ≈ **Rp 6.500/shard**
-  (26 vouchers/day across packs of 6, with carryover).
-- Buying pack-by-pack with no carryover costs Rp 300.000/day = Rp 7.500/shard.
+All bundles together give **1.299.900 gold per week** — enough for about 3
+days of daily specials bought fully with gold. For the rest of the week the
+calculator fills in with vouchers, because topping up gold beyond the bundles
+(paying 1 Rupiah per gold without bonus) always costs more than vouchers.

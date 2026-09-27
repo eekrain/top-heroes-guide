@@ -148,13 +148,9 @@ export function DailySpecialCalculator() {
             )}
           </p>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             {(
-              [
-                comparison.vouchers,
-                comparison.cheapest,
-                comparison.gold,
-              ] as StrategyResult[]
+              [comparison.vouchers, comparison.cheapest] as StrategyResult[]
             ).map((strategy) => (
               <StrategyCard
                 key={strategy.id}

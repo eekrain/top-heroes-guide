@@ -47,32 +47,18 @@ describe('cheapest mix strategy', () => {
     expect(r.plainTopUp).toBe(0)
   })
 
-  it('never costs more than the alternatives', () => {
+  it('never costs more than all-vouchers', () => {
     for (const t of [10, 20, 40, 50, 120, 200, 400, 800]) {
       const c = compareStrategies(t, 0)
       expect(c.cheapest.cost).toBeLessThanOrEqual(c.vouchers.cost)
-      expect(c.cheapest.cost).toBeLessThanOrEqual(c.gold.cost)
     }
   })
 })
 
-describe('all-gold strategy', () => {
-  it('buys weekly bundles ascending then plain top-ups', () => {
-    const r = compareStrategies(40, 0).gold
-    expect(r.cost).toBe(309_000)
-    expect(r.bundleSpend).toBe(309_000)
-    expect(r.plainTopUp).toBe(0)
-    expect(r.goldSpent).toBe(403_000)
-    expect(r.goldLeft).toBe(245_900)
-  })
-
-  it('resets bundle caps across weeks', () => {
-    const r = compareStrategies(400, 0).gold
-    expect(r.cost).toBe(2_759_100)
-    expect(r.bundleSpend).toBe(1_238_000)
-    expect(r.plainTopUp).toBe(1_521_100)
-    expect(r.gems).toBe(1_400)
-    expect(r.goldLeft).toBe(90_900)
+describe('all-gold removal', () => {
+  it('only exposes vouchers and cheapest mix', () => {
+    const c = compareStrategies(400, 0)
+    expect(Object.keys(c).sort()).toEqual(['cheapest', 'cheapestId', 'vouchers'])
   })
 })
 

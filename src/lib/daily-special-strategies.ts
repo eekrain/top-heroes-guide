@@ -30,7 +30,7 @@ export interface BundleTally {
 }
 
 export interface StrategyResult {
-  id: 'vouchers' | 'cheapest' | 'gold'
+  id: 'vouchers' | 'cheapest'
   label: string
   cost: number
   costPerShard: number
@@ -244,52 +244,9 @@ function cheapestMixPlan(
   return buildResult(counts, weekly, bestSim)
 }
 
-function allGoldPlan(counts: ReturnType<typeof tierCounts>): StrategyResult {
-  const result = baseResult('gold', 'All Gold', counts)
-  let inv = 0
-  let week = 1
-  const left = GOLD_BUNDLES.map((b) => b.perWeek)
-  const tallies: BundleTally[] = GOLD_BUNDLES.map((b) => ({
-    price: b.price,
-    gold: b.gold,
-    count: 0,
-  }))
-  for (let day = 1; day <= counts.days; day++) {
-    const wk = Math.floor((day - 1) / 7) + 1
-    if (wk !== week) {
-      week = wk
-      for (let i = 0; i < left.length; i++) left[i] = GOLD_BUNDLES[i].perWeek
-    }
-    let need = TIER_GOLD_COST[0]
-    if (day <= counts.tier2) need += TIER_GOLD_COST[1]
-    while (inv < need) {
-      const idx = left.findIndex((qty) => qty > 0)
-      if (idx === -1) {
-        const topUp = need - inv
-        result.plainTopUp += topUp
-        inv = need
-      } else {
-        left[idx]--
-        inv += GOLD_BUNDLES[idx].gold
-        result.bundleSpend += GOLD_BUNDLES[idx].price
-        tallies[idx].count++
-      }
-    }
-    inv -= need
-    result.goldSpent += need
-    result.gems += TIER_GEMS_GOLD[0]
-    if (day <= counts.tier2) result.gems += TIER_GEMS_GOLD[1]
-  }
-  result.cost = result.bundleSpend + result.plainTopUp
-  result.bundlesBought = tallies.filter((t) => t.count > 0)
-  result.goldLeft = inv
-  return finalize(result)
-}
-
 export interface StrategyComparison {
   vouchers: StrategyResult
   cheapest: StrategyResult
-  gold: StrategyResult
   cheapestId: StrategyResult['id']
 }
 
@@ -302,10 +259,8 @@ export function compareStrategies(
 
   const vouchers = voucherPlan(counts)
   const cheapest = cheapestMixPlan(counts, gold)
-  const allGold = counts.days === 0 ? vouchers : allGoldPlan(counts)
 
-  const ordered = [vouchers, cheapest, allGold]
-  const cheapestStrategy = ordered.reduce((a, b) => (b.cost < a.cost ? b : a))
+  const cheapestId = cheapest.cost < vouchers.cost ? 'cheapest' : 'vouchers'
 
-  return { vouchers, cheapest, gold: allGold, cheapestId: cheapestStrategy.id }
+  return { vouchers, cheapest, cheapestId }
 }

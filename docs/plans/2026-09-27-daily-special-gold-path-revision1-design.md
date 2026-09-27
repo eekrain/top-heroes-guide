@@ -53,3 +53,9 @@ Hand-verified anchors:
 
 - `src/lib/daily-special-strategies.ts` — new bundle table, `cheapestMixPlan`, renamed ids/labels
 - Tests recomputed; component cards relabeled; MDX economics rewritten
+
+## Revision 2 (same day)
+
+- **All Gold strategy removed** — a full all-gold week needs 2.821.000 gold but bundles cap at 1.299.900/week (≈3,2 days); the shortfall would use plain 1:1 top-ups which always lose to vouchers. Achievable only by overpaying; dropped as noise.
+- **Unit economics section removed** — user finds it confusing; per-shard rates live only in the calculator cards.
+- Page restructured for readability: intro → calculator on top → "How the daily special works" (plain bullets) → "Costs side by side" (one compact table) → "Weekly gold bundles" (table + cap note). Consistent "Daily Special" wording; component shows 2 cards.
