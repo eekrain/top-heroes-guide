@@ -123,7 +123,7 @@ function StrategyCard(props: {
         </div>
         <Show when={props.strategy.packs > 0}>
           <div class="flex justify-between">
-            <span class="opacity-60">Packs</span>
+            <span class="opacity-60">Voucher packs</span>
             <span>{formatNumber.format(props.strategy.packs)}</span>
           </div>
         </Show>
@@ -293,7 +293,7 @@ export function DailySpecialCalculator() {
               <span class="font-semibold">{formatIdr.format(dailyPlan()!.totals.cost)}</span>
             </span>
             <span>
-              <span class="opacity-60">Packs </span>
+              <span class="opacity-60">Voucher packs </span>
               {formatNumber.format(dailyPlan()!.totals.packs)}
             </span>
             <span>
