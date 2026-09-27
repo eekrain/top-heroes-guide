@@ -20,7 +20,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function ShardCalculator() {
+export function DailySpecialCalculator() {
   const [raw, setRaw] = useState('400')
   const target = Number.parseInt(raw, 10)
   const valid = Number.isInteger(target) && target > 0
