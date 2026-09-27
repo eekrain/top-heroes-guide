@@ -13,8 +13,6 @@ const formatIdr = new Intl.NumberFormat('id-ID', {
 
 const formatNumber = new Intl.NumberFormat('id-ID')
 
-const PRESETS = [40, 120, 200, 400]
-
 function StrategyCard(props: { strategy: StrategyResult; cheapest: boolean }) {
   return (
     <div
@@ -104,17 +102,6 @@ export function DailySpecialCalculator() {
           onInput={(e) => setRaw(e.currentTarget.value)}
           class="w-32 rounded-md border border-black/15 dark:border-white/20 bg-transparent px-3 py-1.5 text-sm"
         />
-        <For each={PRESETS}>
-          {(preset) => (
-            <button
-              type="button"
-              onClick={() => setRaw(String(preset))}
-              class="rounded-md border border-black/15 dark:border-white/20 px-2.5 py-1 text-xs hover:bg-black/5 dark:hover:bg-white/10"
-            >
-              {formatNumber.format(preset)}
-            </button>
-          )}
-        </For>
         <label class="ml-auto text-sm opacity-60" for="held-gold">
           Gold blocks you hold
         </label>
