@@ -1,17 +1,34 @@
 ---
-
+import Base from '../layouts/Base.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Base title="Top Heroes Fan Site">
+	<section class="py-16 text-center">
+		<h1 class="bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-5xl font-extrabold text-transparent">
+			Top Heroes
+		</h1>
+		<p class="mt-4 text-lg opacity-70">
+			Shard math for daily specials and hero star upgrades.
+		</p>
+	</section>
+	<section class="grid gap-4 sm:grid-cols-2">
+		<a
+			href="/daily-special-calculator"
+			class="group rounded-xl border border-black/15 p-6 transition hover:border-blue-600 dark:border-white/20"
+		>
+			<h2 class="text-xl font-semibold">Daily Special Calculator</h2>
+			<p class="mt-2 text-sm opacity-70">
+				Compare voucher packs and gold bundles to hit your shard target the cheap way.
+			</p>
+		</a>
+		<a
+			href="/hero-shard-calculator"
+			class="group rounded-xl border border-black/15 p-6 transition hover:border-blue-600 dark:border-white/20"
+		>
+			<h2 class="text-xl font-semibold">Hero Shard Calculator</h2>
+			<p class="mt-2 text-sm opacity-70">
+				Shards needed to max any hero to 5★ White — Legendary or Mythic.
+			</p>
+		</a>
+	</section>
+</Base>

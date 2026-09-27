@@ -12,7 +12,8 @@
     "astro": "astro",
     "test": "bun test",
     "types:check": "astro check",
-    "postbuild": "pagefind --site dist"
+    "postbuild": "pagefind --site dist",
+    "lint": "oxlint"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "^0.4.2",
@@ -27,8 +28,11 @@
     "esbuild": true
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@tailwindcss/typography": "^0.5.20",
     "@types/bun": "^1.4.2",
     "oxlint": "^1.85.0",
-    "pagefind": "^1.5.2"
+    "pagefind": "^1.5.2",
+    "typescript": "^6"
   }
 }

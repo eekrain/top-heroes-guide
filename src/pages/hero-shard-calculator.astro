@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { HeroShardCalculator } from '../components/hero-shard-calculator';
+import Prose from '../content/hero-shard.mdx';
+---
+
+<Base title="Hero Shard Calculator" description="Compute the shards needed to max out a hero to 5★ White.">
+	<h1 class="text-3xl font-bold">Hero Shard Calculator</h1>
+	<p class="mt-2 opacity-70">
+		Shards needed to take any hero from its current state to 5★ White.
+	</p>
+	<HeroShardCalculator client:load />
+	<div class="prose prose-zinc dark:prose-invert mt-8 max-w-none">
+		<Prose />
+	</div>
+</Base>

@@ -1,0 +1,36 @@
+---
+interface Props {
+	title: string;
+	description?: string;
+}
+
+const { title, description = 'Calculators and guides for Top Heroes' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="description" content={description} />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} - Top Heroes</title>
+	</head>
+	<body class="min-h-screen bg-white text-black dark:bg-zinc-950 dark:text-white antialiased">
+		<header class="sticky top-0 z-10 border-b border-black/10 dark:border-white/10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur">
+			<nav class="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3 text-sm">
+				<a href="/" class="font-semibold">Top Heroes</a>
+				<a href="/daily-special-calculator" class="opacity-70 hover:opacity-100">Daily Special</a>
+				<a href="/hero-shard-calculator" class="opacity-70 hover:opacity-100">Hero Shards</a>
+				<a href="/search" class="ml-auto opacity-70 hover:opacity-100">Search</a>
+			</nav>
+		</header>
+		<main class="mx-auto max-w-4xl px-4 py-10">
+			<slot />
+		</main>
+		<footer class="border-t border-black/10 dark:border-white/10 py-6 text-center text-xs opacity-60">
+			Fan site for Top Heroes - not affiliated with the game's developer.
+		</footer>
+	</body>
+</html>
