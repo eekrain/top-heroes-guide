@@ -22,18 +22,10 @@ const BUNDLE_NAMES: Record<number, string> = {
 }
 
 type PlanRow =
-  | { kind: 'week'; week: number; text: string }
   | { kind: 'day'; day: number }
   | { kind: 'action'; action: PlanAction }
 
 function PlanHeader(props: { row: PlanRow }) {
-  if (props.row.kind === 'week') {
-    return (
-      <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-cyan-400 first:mt-0">
-        {props.row.text}
-      </p>
-    )
-  }
   return <p class="mt-3 text-sm font-semibold first:mt-0">Day {props.row.day}</p>
 }
 
@@ -97,7 +89,11 @@ function PlanLine(props: { row: PlanRow }) {
   )
 }
 
-function StrategyCard(props: { strategy: StrategyResult; cheapest: boolean }) {
+function StrategyCard(props: {
+  strategy: StrategyResult;
+  cheapest: boolean;
+  onPlan: () => void;
+}) {
   return (
     <div
       class={`rounded-lg border bg-transparent p-4 ${
@@ -157,6 +153,14 @@ function StrategyCard(props: { strategy: StrategyResult; cheapest: boolean }) {
           </div>
         </Show>
       </div>
+
+      <button
+        type="button"
+        onClick={() => props.onPlan()}
+        class="mt-4 w-full rounded-md border border-white/20 py-1.5 text-xs opacity-80 transition hover:opacity-100 hover:bg-white/10"
+      >
+        See day-by-day plan
+      </button>
     </div>
   )
 }
@@ -164,7 +168,7 @@ function StrategyCard(props: { strategy: StrategyResult; cheapest: boolean }) {
 export function DailySpecialCalculator() {
   const [raw, setRaw] = createSignal('400')
   const [goldRaw, setGoldRaw] = createSignal('')
-  const [planTab, setPlanTab] = createSignal<'cheapest' | 'vouchers'>('cheapest')
+  const [planStrategy, setPlanStrategy] = createSignal<'cheapest' | 'vouchers'>('cheapest')
   let planDialog: HTMLDialogElement | undefined
 
   const target = () => Number.parseInt(raw(), 10)
@@ -173,19 +177,12 @@ export function DailySpecialCalculator() {
   const plan = () => (valid() ? calculateShardPlan(target()) : null)
   const comparison = () => (valid() ? compareStrategies(target(), heldGold()) : null)
   const dailyPlan = () =>
-    valid() ? buildDailyPlan(target(), heldGold(), planTab()) : null
+    valid() ? buildDailyPlan(target(), heldGold(), planStrategy()) : null
 
   const planRows = (): PlanRow[] => {
     const rows: PlanRow[] = []
     let lastDay = 0
     for (const action of dailyPlan()?.actions ?? []) {
-      if (action.kind === 'buy-bundles') {
-        rows.push({
-          kind: 'week',
-          week: action.week,
-          text: `Week ${action.week} — gold bundles`,
-        })
-      }
       if (action.day !== lastDay) {
         lastDay = action.day
         rows.push({ kind: 'day', day: action.day })
@@ -247,21 +244,14 @@ export function DailySpecialCalculator() {
               <StrategyCard
                 strategy={strategy}
                 cheapest={comparison()!.cheapestId === strategy.id}
+                onPlan={() => {
+                  setPlanStrategy(strategy.id === 'vouchers' ? 'vouchers' : 'cheapest')
+                  planDialog?.showModal()
+                }}
               />
             )}
           </For>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            setPlanTab(comparison()!.cheapestId === 'vouchers' ? 'vouchers' : 'cheapest')
-            planDialog?.showModal()
-          }}
-          class="self-start rounded-md border border-black/15 dark:border-white/20 px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          See day-by-day plan
-        </button>
 
         <dialog
           ref={planDialog}
@@ -272,7 +262,12 @@ export function DailySpecialCalculator() {
           class="m-auto w-[min(28rem,90vw)] rounded-xl border border-white/15 bg-zinc-950 p-0 text-white shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm"
         >
           <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
-            <h2 class="text-base font-semibold">Day-by-day plan</h2>
+            <div>
+              <h2 class="text-base font-semibold">
+                {planStrategy() === 'cheapest' ? 'Cheapest Mix' : 'All Vouchers'}
+              </h2>
+              <p class="text-xs opacity-60">Day-by-day plan</p>
+            </div>
             <button
               type="button"
               onClick={() => planDialog?.close()}
@@ -281,24 +276,6 @@ export function DailySpecialCalculator() {
             >
               ✕
             </button>
-          </div>
-
-          <div class="flex gap-2 px-5 pt-4">
-            <For each={['cheapest', 'vouchers'] as const}>
-              {(tab) => (
-                <button
-                  type="button"
-                  onClick={() => setPlanTab(tab)}
-                  class={`rounded-full px-3 py-1 text-xs transition ${
-                    planTab() === tab
-                      ? 'bg-blue-600 text-white'
-                      : 'border border-white/20 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  {tab === 'cheapest' ? 'Cheapest Mix' : 'All Vouchers'}
-                </button>
-              )}
-            </For>
           </div>
 
           <div class="max-h-[60vh] overflow-y-auto px-5 py-4">
