@@ -1,40 +1,38 @@
 {
   "name": "top-heroes",
-  "private": true,
   "type": "module",
-  "sideEffects": false,
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "start": "vite preview",
-    "preview": "vite preview",
-    "types:check": "tsc --noEmit",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test": "bun test",
+    "types:check": "astro check",
+    "postbuild": "pagefind --site dist",
     "lint": "oxlint"
   },
   "dependencies": {
-    "@tanstack/react-router": "1.170.38",
-    "@tanstack/react-router-devtools": "1.167.2",
-    "@tanstack/react-start": "1.168.56",
-    "cn": "^0.3.0",
-    "fumadocs-core": "16.15.14",
-    "fumadocs-mdx": "15.4.5",
-    "fumadocs-ui": "npm:@fumadocs/base-ui@16.15.14",
-    "lucide-react": "^1.47.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "@astrojs/markdown-satteri": "^0.4.2",
+    "@astrojs/mdx": "^8.0.2",
+    "@astrojs/solid-js": "^7.0.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.3.5",
+    "solid-js": "^1.9.15",
+    "tailwindcss": "^4.3.3"
+  },
+  "allowScripts": {
+    "esbuild": true
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
+    "@astrojs/check": "^0.9.10",
+    "@tailwindcss/typography": "^0.5.20",
     "@types/bun": "^1.4.2",
-    "@types/mdx": "^2.0.14",
-    "@types/node": "^26.6.1",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.1",
-    "nitro": "3.0.260903-beta",
-    "oxlint": "^1.83.0",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.0"
+    "oxlint": "^1.85.0",
+    "pagefind": "^1.5.2",
+    "typescript": "^6"
   }
 }
