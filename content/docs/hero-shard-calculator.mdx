@@ -1,0 +1,49 @@
+---
+title: Hero Shard Calculator
+description: Compute the shards needed to star up a hero between any two star states.
+icon: Star
+---
+
+Heroes advance through **15 star levels** across three color phases, with 5
+sub-steps per level. This calculator shows the shards needed from any current
+state to any target state — Legendary costs ×1, Mythic costs ×2.
+
+## Star ladder & shard costs
+
+| Phase  | Level | Star      | Legendary/step | Legendary/star | Mythic/star |
+| ------ | ----- | --------- | -------------- | -------------- | ----------- |
+| Yellow | 1     | 1★ Yellow | 1              | 5              | 10          |
+|        | 2     | 2★ Yellow | 1              | 5              | 10          |
+|        | 3     | 3★ Yellow | 2              | 10             | 20          |
+|        | 4     | 4★ Yellow | 2              | 10             | 20          |
+|        | 5     | 5★ Yellow | 4              | 20             | 40          |
+|        |       |           |                | **50**         | **100**     |
+| Red    | 6     | 1★ Red    | 6              | 30             | 60          |
+|        | 7     | 2★ Red    | 4              | 20             | 40          |
+|        | 8     | 3★ Red    | 4              | 20             | 40          |
+|        | 9     | 4★ Red    | 8              | 40             | 80          |
+|        | 10    | 5★ Red    | 8              | 40             | 80          |
+|        |       |           |                | **150**        | **300**     |
+| White  | 11    | 1★ White  | 16             | 80             | 160         |
+|        | 12    | 2★ White  | 4              | 20             | 40          |
+|        | 13    | 3★ White  | 8              | 40             | 80          |
+|        | 14    | 4★ White  | 16             | 80             | 160         |
+|        | 15    | 5★ White  | 16             | 80             | 160         |
+|        |       |           |                | **300**        | **600**     |
+
+Grand total from fresh 1★ Yellow to complete 5★ White: **500 Legendary** or
+**1000 Mythic** shards.
+
+<HeroShardCalculator />
+
+## How it works
+
+Each star state converts to a cumulative shard count from zero:
+
+```text
+T(L, S) = M × ( Σ 5·C[k] for k = 1 .. L−1  +  S·C[L] )
+```
+
+where `C` is the per-step cost table above, and `M` is 2 for Mythic and 1 for
+Legendary. The shards needed are the difference between your target and
+current cumulative counts, minus any shards you already hold.
