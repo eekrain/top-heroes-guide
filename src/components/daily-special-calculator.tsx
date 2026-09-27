@@ -53,18 +53,17 @@ function PlanLine(props: { row: PlanRow }) {
             </p>
           }
         >
-          <p class="ml-4 py-0.5 text-sm text-cyan-300">
-            <For each={(action() as { bundles: { price: number; count: number; gold: number }[] }).bundles}>
-              {(bundle) => (
-                <span>
-                  Buy {formatNumber.format(bundle.count)}×{' '}
-                  {BUNDLE_NAMES[bundle.price] ?? 'Gold'} bundle —{' '}
-                  {formatIdr.format(bundle.price * bundle.count)} → +
-                  {formatNumber.format(bundle.gold * bundle.count)} gold
-                </span>
-              )}
-            </For>
-          </p>
+          <For
+            each={(action() as { bundles: { price: number; count: number; gold: number }[] }).bundles}
+          >
+            {(bundle) => (
+              <p class="ml-4 py-0.5 text-sm text-cyan-300">
+                Buy {formatNumber.format(bundle.count)}×{' '}
+                {BUNDLE_NAMES[bundle.price] ?? 'Gold'} bundle ({formatIdr.format(bundle.price * bundle.count)}) → +
+                {formatNumber.format(bundle.gold * bundle.count)} gold
+              </p>
+            )}
+          </For>
         </Show>
       }
     >
