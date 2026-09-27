@@ -2,6 +2,7 @@ import { DAILY_DEAL } from './shard-calculator'
 
 export interface GoldBundle {
   price: number
+  /** Total gold received (base + 110% bonus). */
   gold: number
   perWeek: number
 }
@@ -14,10 +15,13 @@ const TIER_GOLD_COST = [93_000, 310_000]
 const TIER_GEMS_GOLD = [35, 105]
 
 export const GOLD_BUNDLES: GoldBundle[] = [
-  { price: 77_000, gold: 84_700, perWeek: 2 },
-  { price: 155_000, gold: 170_500, perWeek: 1 },
-  { price: 310_000, gold: 341_000, perWeek: 1 },
+  { price: 77_000, gold: 161_700, perWeek: 2 },
+  { price: 155_000, gold: 325_500, perWeek: 1 },
+  { price: 310_000, gold: 651_000, perWeek: 1 },
 ]
+
+/** Above this many weeks the exhaustive search falls back to a greedy pass. */
+const MAX_SEARCH_WEEKS = 5
 
 export interface BundleTally {
   price: number
@@ -26,7 +30,7 @@ export interface BundleTally {
 }
 
 export interface StrategyResult {
-  id: 'vouchers' | 'gold-first' | 'gold'
+  id: 'vouchers' | 'cheapest' | 'gold'
   label: string
   cost: number
   costPerShard: number
@@ -85,6 +89,18 @@ function finalize(result: StrategyResult): StrategyResult {
   }
 }
 
+function tallyBundles(weeklyCounts: number[][]): BundleTally[] {
+  const tallies = GOLD_BUNDLES.map((b) => ({
+    price: b.price,
+    gold: b.gold,
+    count: 0,
+  }))
+  for (const week of weeklyCounts) {
+    for (let i = 0; i < week.length; i++) tallies[i].count += week[i]
+  }
+  return tallies.filter((t) => t.count > 0)
+}
+
 function voucherPlan(counts: ReturnType<typeof tierCounts>): StrategyResult {
   const result = baseResult('vouchers', 'All Vouchers', counts)
   const [tier1, tier2] = DAILY_DEAL.tiers
@@ -95,35 +111,137 @@ function voucherPlan(counts: ReturnType<typeof tierCounts>): StrategyResult {
   return finalize(result)
 }
 
-function goldFirstPlan(
+/**
+ * Simulates a bundle purchase schedule: gold (held + bought) fills each week's
+ * tiers biggest-first; remaining tiers pay into the global voucher pool.
+ */
+function simulateMix(
+  counts: ReturnType<typeof tierCounts>,
+  heldGold: number,
+  weeklyCounts: number[][],
+): { cost: number; gems: number; goldSpent: number; goldLeft: number; vouchers: number } {
+  let inv = heldGold
+  let bundleSpend = 0
+  let vouchers = 0
+  let gems = 0
+  let goldSpent = 0
+  const weeks = weeklyCounts.length
+  for (let w = 0; w < weeks; w++) {
+    for (let i = 0; i < GOLD_BUNDLES.length; i++) {
+      inv += GOLD_BUNDLES[i].gold * weeklyCounts[w][i]
+      bundleSpend += GOLD_BUNDLES[i].price * weeklyCounts[w][i]
+    }
+    const dayStart = w * 7 + 1
+    const dayEnd = Math.min(counts.days, w * 7 + 7)
+    const daysThisWeek = Math.max(0, dayEnd - dayStart + 1)
+    const t1ThisWeek = daysThisWeek
+    const t2ThisWeek = Math.max(0, Math.min(counts.tier2, dayEnd) - (dayStart - 1))
+    const goldT2 = Math.min(t2ThisWeek, Math.floor(inv / TIER_GOLD_COST[1]))
+    inv -= goldT2 * TIER_GOLD_COST[1]
+    const goldT1 = Math.min(t1ThisWeek, Math.floor(inv / TIER_GOLD_COST[0]))
+    inv -= goldT1 * TIER_GOLD_COST[0]
+    goldSpent += goldT2 * TIER_GOLD_COST[1] + goldT1 * TIER_GOLD_COST[0]
+    gems += goldT2 * TIER_GEMS_GOLD[1] + goldT1 * TIER_GEMS_GOLD[0]
+    const voucherT2 = t2ThisWeek - goldT2
+    const voucherT1 = t1ThisWeek - goldT1
+    gems += voucherT2 * TIER_GEMS_VOUCHER[1] + voucherT1 * TIER_GEMS_VOUCHER[0]
+    vouchers +=
+      voucherT2 * DAILY_DEAL.tiers[1].vouchers + voucherT1 * DAILY_DEAL.tiers[0].vouchers
+  }
+  const packs = Math.ceil(vouchers / DAILY_DEAL.packSize)
+  return {
+    cost: bundleSpend + packs * DAILY_DEAL.packPrice,
+    gems,
+    goldSpent,
+    goldLeft: inv,
+    vouchers,
+  }
+}
+
+function buildResult(
+  counts: ReturnType<typeof tierCounts>,
+  weeklyCounts: number[][],
+  sim: ReturnType<typeof simulateMix>,
+): StrategyResult {
+  const result = baseResult('cheapest', 'Cheapest Mix', counts)
+  result.cost = sim.cost
+  result.bundleSpend = weeklyCounts.flat().reduce(
+    (sum, count, i) => sum + count * GOLD_BUNDLES[i % GOLD_BUNDLES.length].price,
+    0,
+  )
+  result.bundlesBought = tallyBundles(weeklyCounts)
+  result.packs = Math.ceil(sim.vouchers / DAILY_DEAL.packSize)
+  result.goldSpent = sim.goldSpent
+  result.goldLeft = sim.goldLeft
+  result.gems = sim.gems
+  return finalize(result)
+}
+
+function isBetter(
+  candidate: { cost: number; gems: number; goldLeft: number },
+  best: { cost: number; gems: number; goldLeft: number } | null,
+): boolean {
+  if (!best) return true
+  if (candidate.cost !== best.cost) return candidate.cost < best.cost
+  if (candidate.gems !== best.gems) return candidate.gems > best.gems
+  return candidate.goldLeft < best.goldLeft
+}
+
+function cheapestMixPlan(
   counts: ReturnType<typeof tierCounts>,
   heldGold: number,
 ): StrategyResult {
-  const result = baseResult('gold-first', 'Gold First', counts)
-  let goldInv = heldGold
-  let voucherInv = 0
-  for (let day = 1; day <= counts.days; day++) {
-    const tiers = day <= counts.tier2 ? [0, 1] : [0]
-    for (const i of tiers) {
-      const goldCost = TIER_GOLD_COST[i]
-      if (goldInv >= goldCost) {
-        goldInv -= goldCost
-        result.goldSpent += goldCost
-        result.gems += TIER_GEMS_GOLD[i]
-      } else {
-        const vouchersNeeded = DAILY_DEAL.tiers[i].vouchers
-        while (voucherInv < vouchersNeeded) {
-          voucherInv += DAILY_DEAL.packSize
-          result.packs++
-          result.cost += DAILY_DEAL.packPrice
+  if (counts.days === 0) return voucherPlan(counts)
+  const weeks = Math.ceil(counts.days / 7)
+
+  const enumerate = (
+    week: number,
+    acc: number[][],
+    best: StrategyResult | null,
+  ): StrategyResult | null => {
+    if (week === weeks) {
+      const sim = simulateMix(counts, heldGold, acc)
+      if (!isBetter(sim, best)) return best
+      return buildResult(counts, acc, sim)
+    }
+    for (let a = 0; a <= GOLD_BUNDLES[0].perWeek; a++) {
+      for (let b = 0; b <= GOLD_BUNDLES[1].perWeek; b++) {
+        for (let c = 0; c <= GOLD_BUNDLES[2].perWeek; c++) {
+          best = enumerate(week + 1, [...acc, [a, b, c]], best)
         }
-        voucherInv -= vouchersNeeded
-        result.gems += TIER_GEMS_VOUCHER[i]
+      }
+    }
+    return best
+  }
+
+  if (weeks <= MAX_SEARCH_WEEKS) {
+    const best = enumerate(0, [], null)
+    if (best) return best
+  }
+
+  // Greedy fallback for very long plans: add one bundle at a time while it helps.
+  const weekly: number[][] = Array.from({ length: weeks }, () =>
+    GOLD_BUNDLES.map(() => 0),
+  )
+  let bestSim = simulateMix(counts, heldGold, weekly)
+  let improved = true
+  while (improved) {
+    improved = false
+    for (let w = 0; w < weeks; w++) {
+      for (let i = 0; i < GOLD_BUNDLES.length; i++) {
+        if (weekly[w][i] >= GOLD_BUNDLES[i].perWeek) continue
+        weekly[w][i]++
+        const sim = simulateMix(counts, heldGold, weekly)
+        if (isBetter(sim, bestSim)) {
+          bestSim = sim
+          improved = true
+        } else {
+          weekly[w][i]--
+        }
       }
     }
   }
-  result.goldLeft = goldInv
-  return finalize(result)
+  return buildResult(counts, weekly, bestSim)
 }
 
 function allGoldPlan(counts: ReturnType<typeof tierCounts>): StrategyResult {
@@ -170,7 +288,7 @@ function allGoldPlan(counts: ReturnType<typeof tierCounts>): StrategyResult {
 
 export interface StrategyComparison {
   vouchers: StrategyResult
-  goldFirst: StrategyResult
+  cheapest: StrategyResult
   gold: StrategyResult
   cheapestId: StrategyResult['id']
 }
@@ -183,11 +301,11 @@ export function compareStrategies(
   const gold = Number.isFinite(heldGold) ? Math.max(0, Math.floor(heldGold)) : 0
 
   const vouchers = voucherPlan(counts)
-  const goldFirst = counts.days === 0 ? vouchers : goldFirstPlan(counts, gold)
+  const cheapest = cheapestMixPlan(counts, gold)
   const allGold = counts.days === 0 ? vouchers : allGoldPlan(counts)
 
-  const ordered = [vouchers, goldFirst, allGold]
-  const cheapest = ordered.reduce((a, b) => (b.cost < a.cost ? b : a))
+  const ordered = [vouchers, cheapest, allGold]
+  const cheapestStrategy = ordered.reduce((a, b) => (b.cost < a.cost ? b : a))
 
-  return { vouchers, goldFirst, gold: allGold, cheapestId: cheapest.id }
+  return { vouchers, cheapest, gold: allGold, cheapestId: cheapestStrategy.id }
 }

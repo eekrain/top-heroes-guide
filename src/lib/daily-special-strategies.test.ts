@@ -7,73 +7,85 @@ describe('all-voucher strategy', () => {
     expect(r.cost).toBe(2_640_000)
     expect(r.packs).toBe(44)
     expect(r.gems).toBe(2_000)
-    expect(r.actualShards).toBe(400)
   })
 })
 
-describe('gold-first strategy', () => {
-  it('equals all-vouchers when no gold is held', () => {
-    const a = compareStrategies(400, 0).goldFirst
-    const b = compareStrategies(400, 0).vouchers
-    expect(a.cost).toBe(b.cost)
-    expect(a.packs).toBe(b.packs)
-    expect(a.gems).toBe(b.gems)
+describe('cheapest mix strategy', () => {
+  it('buys two small bundles and covers tier 2 with gold for a single day', () => {
+    const r = compareStrategies(40, 0).cheapest
+    expect(r.cost).toBe(214_000)
+    expect(r.bundleSpend).toBe(154_000)
+    expect(r.bundlesBought).toEqual([{ price: 77_000, gold: 161_700, count: 2 }])
+    expect(r.packs).toBe(1)
+    expect(r.gems).toBe(155)
+    expect(r.goldSpent).toBe(310_000)
+    expect(r.goldLeft).toBe(13_400)
+    expect(r.plainTopUp).toBe(0)
   })
 
-  it('covers both tiers free when held gold is sufficient', () => {
-    const r = compareStrategies(40, 403_000).goldFirst
-    expect(r.cost).toBe(0)
-    expect(r.packs).toBe(0)
-    expect(r.gems).toBe(140)
+  it('spends held gold before buying bundles', () => {
+    const r = compareStrategies(50, 100_000).cheapest
+    expect(r.cost).toBe(214_000)
+    expect(r.packs).toBe(1)
+    expect(r.gems).toBe(190)
     expect(r.goldSpent).toBe(403_000)
-    expect(r.goldLeft).toBe(0)
+    expect(r.goldLeft).toBe(20_400)
   })
 
-  it('mixes gold and vouchers across days', () => {
-    const r = compareStrategies(50, 100_000).goldFirst
-    expect(r.cost).toBe(300_000)
-    expect(r.packs).toBe(5)
-    expect(r.gems).toBe(235)
-    expect(r.goldSpent).toBe(93_000)
-    expect(r.goldLeft).toBe(7_000)
+  it('searches weekly bundle combinations for the 400-shard optimum', () => {
+    const r = compareStrategies(400, 0).cheapest
+    expect(r.cost).toBe(2_223_000)
+    expect(r.bundleSpend).toBe(1_083_000)
+    expect(r.bundlesBought).toEqual([
+      { price: 77_000, gold: 161_700, count: 4 },
+      { price: 155_000, gold: 325_500, count: 1 },
+      { price: 310_000, gold: 651_000, count: 2 },
+    ])
+    expect(r.packs).toBe(19)
+    expect(r.gems).toBe(1_670)
+    expect(r.goldLeft).toBe(11_300)
+    expect(r.plainTopUp).toBe(0)
+  })
+
+  it('never costs more than the alternatives', () => {
+    for (const t of [10, 20, 40, 50, 120, 200, 400, 800]) {
+      const c = compareStrategies(t, 0)
+      expect(c.cheapest.cost).toBeLessThanOrEqual(c.vouchers.cost)
+      expect(c.cheapest.cost).toBeLessThanOrEqual(c.gold.cost)
+    }
   })
 })
 
 describe('all-gold strategy', () => {
   it('buys weekly bundles ascending then plain top-ups', () => {
     const r = compareStrategies(40, 0).gold
-    expect(r.cost).toBe(619_000)
-    expect(r.bundleSpend).toBe(619_000)
+    expect(r.cost).toBe(309_000)
+    expect(r.bundleSpend).toBe(309_000)
     expect(r.plainTopUp).toBe(0)
     expect(r.goldSpent).toBe(403_000)
-    expect(r.goldLeft).toBe(277_900)
-    expect(r.bundlesBought).toEqual([
-      { price: 77_000, gold: 84_700, count: 2 },
-      { price: 155_000, gold: 170_500, count: 1 },
-      { price: 310_000, gold: 341_000, count: 1 },
-    ])
+    expect(r.goldLeft).toBe(245_900)
   })
 
   it('resets bundle caps across weeks', () => {
     const r = compareStrategies(400, 0).gold
-    expect(r.cost).toBe(3_906_200)
+    expect(r.cost).toBe(2_759_100)
     expect(r.bundleSpend).toBe(1_238_000)
-    expect(r.plainTopUp).toBe(2_668_200)
-    expect(r.goldSpent).toBe(4_030_000)
-    expect(r.goldLeft).toBe(0)
+    expect(r.plainTopUp).toBe(1_521_100)
     expect(r.gems).toBe(1_400)
+    expect(r.goldLeft).toBe(90_900)
   })
 })
 
 describe('comparison', () => {
-  it('crowns vouchers as cheapest', () => {
+  it('crowns the cheapest mix by default', () => {
     const c = compareStrategies(400, 0)
-    expect(c.cheapestId).toBe('vouchers')
-    expect(c.vouchers.cost).toBeLessThanOrEqual(c.goldFirst.cost)
-    expect(c.vouchers.cost).toBeLessThan(c.gold.cost)
+    expect(c.cheapestId).toBe('cheapest')
   })
 
-  it('gold-first wins when enough gold is held', () => {
-    expect(compareStrategies(40, 403_000).cheapestId).toBe('gold-first')
+  it('held gold covering everything wins with zero cost', () => {
+    const c = compareStrategies(40, 403_000)
+    expect(c.cheapestId).toBe('cheapest')
+    expect(c.cheapest.cost).toBe(0)
+    expect(c.cheapest.gems).toBe(140)
   })
 })

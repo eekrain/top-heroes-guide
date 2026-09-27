@@ -152,7 +152,7 @@ export function DailySpecialCalculator() {
             {(
               [
                 comparison.vouchers,
-                comparison.goldFirst,
+                comparison.cheapest,
                 comparison.gold,
               ] as StrategyResult[]
             ).map((strategy) => (
