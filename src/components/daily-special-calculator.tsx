@@ -129,7 +129,7 @@ function StrategyCard(props: {
         </Show>
         <Show when={props.strategy.bundleSpend > 0}>
           <div class="flex justify-between">
-            <span class="opacity-60">Bundles</span>
+            <span class="opacity-60">Gold bundles bought</span>
             <span>{formatIdr.format(props.strategy.bundleSpend)}</span>
           </div>
         </Show>
@@ -141,7 +141,7 @@ function StrategyCard(props: {
         </Show>
         <Show when={props.strategy.goldSpent > 0}>
           <div class="flex justify-between">
-            <span class="opacity-60">Gold used</span>
+            <span class="opacity-60">Gold spent</span>
             <span>{formatNumber.format(props.strategy.goldSpent)}</span>
           </div>
         </Show>
